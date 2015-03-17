@@ -14,7 +14,7 @@ class AddressesController extends \Test\Controllers\API\ApiControllerBase {
         echo json_decode([1, 2, 3]);
     }
 
-    public function listMe() {
+    public function listMeAction() {
         $this->response->setResponse([1, 2, 3, 4]);
         return $this->response;
     }

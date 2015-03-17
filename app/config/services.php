@@ -80,13 +80,37 @@ $di->set('view', function () use ($config) {
             return $session;
         });
 
-        $di->set('dispatcher', function() {
-            $dispatcher = new \Phalcon\Mvc\Dispatcher();
+        $di->setShared('dispatcher', function() {
+            $eventsManager = new Phalcon\Events\Manager();
+
+            $eventsManager->attach("dispatch", function($event, $dispatcher, $exception) {
+                /* @var $dispatcher Phalcon\Mvc\Dispatcher */
+                if ($event->getType() == 'beforeException') {
+                    $ctrl = $dispatcher->getActiveController();
+
+                    if($ctrl instanceof \Test\Controllers\API\ApiControllerBase) {
+                        $dispatcher->forward(array(
+                            'namespace' => '\\',
+                            'controller' => 'error',
+                            'action' => 'api',
+                            'params' => array('message' => $exception->getMessage())
+                        ));
+                        return false;
+                    }
+                }
+            });
+
+            $dispatcher = new Phalcon\Mvc\Dispatcher();
             $dispatcher->setDefaultNamespace('Test\Controllers');
+            //Bind the EventsManager to the Dispatcher
+            $dispatcher->setEventsManager($eventsManager);
+
             return $dispatcher;
         });
 
-        $router = new \Phalcon\Mvc\Router();
-        include __DIR__ . '/routes_api.php';
-        $router->mount($api);
-
+        $di->setShared('router', function() {
+             $router = new \Phalcon\Mvc\Router();
+            include __DIR__ . '/routes_api.php';
+            $router->mount($api);
+            return $router;
+        });
